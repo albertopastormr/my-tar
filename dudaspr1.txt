@@ -1,0 +1,5 @@
+________________________ DUDAS ________________
+
+- Warning al compilar: casteos entre punteros e int
+- Memoria reservada para el fichero
+- funcion copynfile: - Devuelve -1 ?  - Lo hacemos char a char ?
