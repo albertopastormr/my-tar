@@ -48,10 +48,25 @@ char* loadstr(FILE * file){
 	// 4. volver a leer los tam bytes escribiendolos en el buffer (acoraros de copiar el \0)
 	// 5. devolver el buffer
 	char *c;
+	int bytesCount = 0;
+	char aux;
+	int i;	
+
+	aux = fgetc(file);
+	while(aux != '0'){ // Se cuenta el numero de bytes hasta leer el final de cadena
+		bytesCount++;
+		aux = fgetc(file);
+	}
+
+	fseek(file, -bytesCount , SEEK_CUR); // Se posiciona en el inicio del archivo
 	
-	// 3
-	c = malloc(tam*sizeof*char)); 
-	return NULL;
+	c = malloc(sizeof(char)*bytesCount); // Una vez conocido el tamamo del archivo, se reserva memoria para el
+
+	for(i = 0; i < bytesCount; i++){ // Se vuelve a recorrer el archivo guardandolo en el buffer
+		*c = fgetc(file);	
+	}
+	
+	return c;
 }
 
 /** Read tarball header and store it in memory.
@@ -85,7 +100,7 @@ stHeaderEntry* readHeader(FILE * tarFile, int *nFiles){
 	}
 	
 	
-	for(i = 0; i < nr_files; i++){
+	for(i = 0; i < nr_files; i++){ // Para cada fichero se almacena su nombre y tamano en headerArray
 		
 		printf("%d ---1\n", i);
 		
@@ -136,11 +151,10 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 	int sumLenFileName = 0;
 	int fileSize = 0;
 	int i = 0;
-	int *pNfile;
+
 	
 	tarFile = fopen(tarName, "w");
 	
-	pNfile = malloc(sizeof(int));
 	
 	// Puntero a la primera posicion de la cabezera
 	headerArray = malloc(sizeof(stHeaderEntry)*nFiles);
@@ -202,9 +216,7 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 	}
 	
 	
-	*pNfile = nFiles;
-	
-	fwrite(pNfile, sizeof(int), 1, tarFile);
+	fwrite(&nFiles, sizeof(int), 1, tarFile);
 	
 	
 	if(fwrite(headerArray, sizeof(stHeaderEntry), sizeof(headerArray), tarFile) < sizeof(headerArray) ){
@@ -247,7 +259,7 @@ int extractTar(char tarName[]){
 	tarFile = fopen(tarName, "r");
 	
 	
-	headerArray = readHeader(tarFile, nFiles);
+	headerArray = readHeader(tarFile, &nFiles);
 	
 	printf("LA TIENES PEQUENIA3\n");
 	
