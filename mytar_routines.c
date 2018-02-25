@@ -1,10 +1,14 @@
+/*
+*	Practica 1 de SO - Alberto Pastor e Ivan Fernandez
+*/
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "mytar.h"
 
-extern char *use;
+//extern char *use;
 
 /** Copy nBytes bytes from the origin file to the destination file.
  *
@@ -17,14 +21,13 @@ extern char *use;
 int copynFile(FILE * origin, FILE * destination, int nBytes){
 	int cp = 0;
 	char c;
-	
-	c = fgetc(origin);
-	while(c != EOF && cp < nBytes){
-		cp++;
-		putc(c, destination);
-		c = fgetc(origin);
-	}
 
+	while((c = fgetc(origin)) != EOF && cp < nBytes){
+		int n = fputc(c ,destination);
+		if(n == EOF) return -1;
+	
+		cp++;
+	}
 
 	return cp;
 }
@@ -41,32 +44,29 @@ int copynFile(FILE * origin, FILE * destination, int nBytes){
  * Returns: !=NULL if success, NULL if error
  */
 char* loadstr(FILE * file){
-	// Complete the function
-	// 1. contar bytes hasta leer \0 (tam)
-	// 2. mover marcador de posicion tam bytes atras
-	// 3. reservar tam bytes con malloc
-	// 4. volver a leer los tam bytes escribiendolos en el buffer (acoraros de copiar el \0)
-	// 5. devolver el buffer
+	
 	char *c;
 	int bytesCount = 0;
 	char aux;
 	int i;	
 
 	aux = fgetc(file);
-	while(aux != '0'){ // Se cuenta el numero de bytes hasta leer el final de cadena
+	while(aux != '\0'){ // Se cuenta el numero de bytes hasta leer el final de cadena
 		bytesCount++;
 		aux = fgetc(file);
 	}
+	bytesCount++; //Sumamos uno por el caracter cero
 
 	fseek(file, -bytesCount , SEEK_CUR); // Se posiciona en el inicio del archivo
 	
 	c = malloc(sizeof(char)*bytesCount); // Una vez conocido el tamamo del archivo, se reserva memoria para el
 
 	for(i = 0; i < bytesCount; i++){ // Se vuelve a recorrer el archivo guardandolo en el buffer
-		*c = fgetc(file);	
+		c[i] = fgetc(file);
 	}
 	
 	return c;
+	
 }
 
 /** Read tarball header and store it in memory.
@@ -78,6 +78,7 @@ char* loadstr(FILE * file){
  * On success it returns the starting memory address of an array that stores 
  * the (name,size) pairs read from the tar file. Upon failure, the function returns NULL.
  */
+
 stHeaderEntry* readHeader(FILE * tarFile, int *nFiles){
 	// Complete the function
 	
@@ -88,7 +89,7 @@ stHeaderEntry* readHeader(FILE * tarFile, int *nFiles){
 	
 	// Leemos el numero de ficheros que tenemos
 	if(fread(&nr_files, sizeof(int), 1, tarFile) < 1){
-		printf("Error en la lectura de la cabecera del fichero .mytar. \n");
+		printf("Error en la lectura de la cabecera del fichero. \n");
 		return NULL;
 	}
 	
@@ -99,25 +100,17 @@ stHeaderEntry* readHeader(FILE * tarFile, int *nFiles){
 		return NULL;
 	}
 	
-	
-	for(i = 0; i < nr_files; i++){ // Para cada fichero se almacena su nombre y tamano en headerArray
-		
-		printf("%d ---1\n", i);
+	for(i = 0; i < nr_files; i++){
 		
 		headerArray[i].name = loadstr(tarFile);
-	
-		printf("%d ---2\n", i);
-		if( fread(&headerArray[i].size, sizeof(headerArray[i].size), 1, tarFile) < 1){
+		
+		if(fread(&headerArray[i].size, sizeof(headerArray[i].size), 1, tarFile) < 1){
 			printf("Error en la lectura del tamanio del archivo %d cabecera del fichero. \n", i);
 			return NULL;
 		}
-		printf("%d ---3\n", i);
 	}
 	
-	printf("200\n");
-	
 	(*nFiles) = nr_files;
-	
 	
 	return headerArray;
 }
@@ -151,12 +144,10 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 	int sumLenFileName = 0;
 	int fileSize = 0;
 	int i = 0;
-
 	
 	tarFile = fopen(tarName, "w");
 	
-	
-	// Puntero a la primera posicion de la cabezera
+	// Puntero a la primera posicion de la cabecera
 	headerArray = malloc(sizeof(stHeaderEntry)*nFiles);
 	
 	if (headerArray == NULL) {
@@ -174,10 +165,7 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 	//sizeHeader = nFiles*sizeof(stHeaderEntry) + sizeof(int);
 	
 	// Nos posicionamos en el bytes tras la cabecera
-	if(fseek( tarFile, sizeHeader, SEEK_SET ) == -1){
-		printf("Error al posicionarnos con fseek en final de cabecera %s\n", tarName);
-		exit(EXIT_FAILURE);
-	}
+	fseek( tarFile, sizeHeader, SEEK_SET );
 	
 	for(i = 0; i < nFiles; i++){
 	
@@ -186,18 +174,19 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 		FILE * inputFile = fopen(fileNames[i], "r");
 		
 		// Calculamos el tamanio del fichero fileName
+		/*
 		fseek(inputFile, 0L, SEEK_END);
 		if((fileSize = ftell(inputFile)) == -1){
 			printf("Error al obtener tamanio del fichero: %s \n", fileNames[i]);
 			exit(EXIT_FAILURE);
 		};
 		fseek(inputFile, 0L, SEEK_SET);
+		*/
 		
-		if(copynFile(inputFile, tarFile, fileSize) < fileSize){
+		if((fileSize = copynFile(inputFile, tarFile, INT_MAX)) == -1){
 			printf("No hay galletas. \n");
 			exit(EXIT_FAILURE);
 		}
-		
 
 		if (fclose(inputFile) != 0) {
 			printf("Error al cerrar el fichero %s \n", fileNames[i]);
@@ -215,13 +204,12 @@ int createTar(int nFiles, char *fileNames[], char tarName[]) {
 	
 	}
 	
-	
 	fwrite(&nFiles, sizeof(int), 1, tarFile);
-	
-	
-	if(fwrite(headerArray, sizeof(stHeaderEntry), sizeof(headerArray), tarFile) < sizeof(headerArray) ){
-		printf("Error al escribir en el fichero %s\n", tarName);
-		exit(EXIT_FAILURE);
+
+	int j;
+	for(j = 0; j < nFiles; j++){
+		fwrite(headerArray[j].name, sizeof(char), strlen(headerArray[j].name) + 1, tarFile);
+		fwrite(&headerArray[j].size, sizeof(unsigned int), 1, tarFile);
 	}
 	
 	if (fclose(tarFile) != 0) {
@@ -252,35 +240,27 @@ int extractTar(char tarName[]){
 	FILE *tarFile = NULL;
 	FILE *outputFile = NULL;
 	int nFiles = 0;
-	stHeaderEntry * headerArray = NULL;
+	//stHeaderEntry *headerArray = NULL;
 	int i = 0;
-	
 	
 	tarFile = fopen(tarName, "r");
 	
-	
-	headerArray = readHeader(tarFile, &nFiles);
-	
-	printf("LA TIENES PEQUENIA3\n");
+	stHeaderEntry *headerArray = readHeader(tarFile, &nFiles);
 	
 	if(headerArray == NULL){
+		printf("Error debido a cabecera vacia.\n");
 		exit(EXIT_FAILURE);
 	}
-	
 
 	for(i = 0; i < nFiles; i++){
 		// Creamos fichero con la informacion que hemos recibido en la cabecera stHeaderEntry
-		if( (outputFile = fopen(headerArray[i].name, "w")) ==  NULL){
+		if((outputFile = fopen(headerArray[i].name, "w")) ==  NULL){
 			printf("Error al abrir el fichero %s\n", headerArray[i].name);
 			exit(EXIT_FAILURE);
 		}
 		
 		copynFile(tarFile, outputFile, headerArray[i].size);
 		
-		if(fclose(outputFile) != 0){
-			printf("Error al cerrar el fichero %s\n", headerArray[i].name);
-			exit(EXIT_FAILURE);
-		}
 	}
 	
 	return EXIT_SUCCESS;

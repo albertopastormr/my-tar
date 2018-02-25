@@ -52,7 +52,6 @@ int main(int argc, char *argv[]) {
   switch(flag) {
     case CREATE:
       retCode=createTar(nExtra, &argv[optind], tarName);
-      printf("Fichero %s.mytar creado correctamente !", tarName);
       break;
     case EXTRACT:
       if(nExtra!=0){
@@ -60,7 +59,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
       }
       retCode=extractTar(tarName);
-      printf("Fichero %s.mytar extraido correctamente !", tarName);
       break;
     default:
       retCode=EXIT_FAILURE;
