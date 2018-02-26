@@ -2,11 +2,13 @@
 #define _MYTAR_H
 
 #include <limits.h>
+#include "crc.h"
 
 typedef enum{
   NONE,
   ERROR,
   CREATE,
+  CHECKSUM,
   EXTRACT
 } flags;
 
@@ -17,6 +19,7 @@ typedef struct {
 
 int createTar(int nFiles, char *fileNames[], char tarName[]);
 int extractTar(char tarName[]);
+int computeChecksums(char tarName[]);
 
 
 #endif /* _MYTAR_H */

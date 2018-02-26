@@ -1,9 +1,9 @@
 TARGET = mytar
 CC = gcc
 CFLAGS = -g -Wall 
-OBJS = mytar.o mytar_routines.o
+OBJS = mytar.o mytar_routines.o crc.o
 SOURCES = $(addsuffix .c, $(basename $(OBJS)))
-HEADERS = mytar.h
+HEADERS = mytar.h crc.h
 
 all: $(TARGET)
 
