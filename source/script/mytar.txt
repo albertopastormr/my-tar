@@ -1,0 +1,84 @@
+#!/bin/bash
+# -*- ENCODING: UTF-8 -*-
+
+ARCTAR=$(pwd)/mytar
+DIRTMP=$(pwd)/tmp
+DIROUT=$(pwd)/tmp/out
+
+# Comprobamos que exista un archivo con la extension .mtar
+if [ -x $ARCTAR ]; then
+
+        # Comprobamos la existencia del directorio tmp
+        if [ -d $DIRTMP ]; then
+      		$(rm -rf $DIRTMP)
+	fi
+
+	# No existe el directorio tmp
+	mkdir $DIRTMP
+
+	# Creamos file1.txt
+	echo "Hello world!" >> $DIRTMP/file1.txt
+		
+	# Creamos file2.txt
+	head -n 10 /etc/passwd >> $DIRTMP/file2.txt
+		
+	# Creamos file3.txt
+	head -c 1024 /dev/urandom >> $DIRTMP/file3.dat
+				
+	#Invocamos el programa mytar con los tres ficheros
+	$ARCTAR -c -f $DIRTMP/filetar.mtar $DIRTMP/file1.txt $DIRTMP/file2.txt $DIRTMP/file3.dat
+	
+	# Creamos el directorio out, no es necesario comprobar si existe
+	mkdir $DIROUT
+
+	cd $DIROUT
+
+	#Copiamos el filetar.mtar en el out
+	cp $DIRTMP/filetar.mtar $DIROUT/filetar.mtar
+
+	#Movemos los ficheros file a out tambien debiado a la creacion de los nuevos
+	mv -t $DIROUT $DIRTMP/file1.txt $DIRTMP/file2.txt $DIRTMP/file3.dat
+
+	#Ejecutamos descompresion del mtar
+	$ARCTAR -x -f $DIROUT/filetar.mtar
+
+	#Comprobamos los fichero si son iguales
+	OUT_FILE1=$(diff -a $DIRTMP/file1.txt $DIROUT/file1.txt)
+	OUT_FILE2=$(diff -a $DIRTMP/file2.txt $DIROUT/file2.txt) 
+	OUT_FILE3=$(diff -a $DIRTMP/file3.dat $DIROUT/file3.dat) 
+
+	#Comprobamos la respuesta del diff	
+	if [[("$OUT_FILE1" == "") && ("$OUT_FILE2" == "") && ("$OUT_FILE3" == "") ]] ; then
+		echo "Mtar correct"
+	else
+      		echo "ERROR: Test incorrect: Mtar doesn't match"
+		exit 1
+	fi
+
+	# PARTE EXTRA - COMPROBACION DEL CHECKSUM
+	CHECK_FILE1=$(cksum $DIRTMP/file1.txt | awk '{print $1}')
+	CHECK_FILE2=$(cksum $DIRTMP/file2.txt | awk '{print $1}') 
+	CHECK_FILE3=$(cksum $DIRTMP/file3.dat | awk '{print $1}')
+
+	#CHECK_OUT1=$(cksum $DIROUT/file1.txt | awk '{print $1}')
+	#CHECK_OUT2=$(cksum $DIROUT/file2.txt | awk '{print $1}') 
+	#CHECK_OUT3=$(cksum $DIROUT/file3.dat | awk '{print $1}')
+
+	CHECKMYTAR_OUT=$($ARCTAR -k -f $DIROUT/filetar.mtar | awk '{print $6}')
+ 	CHECKFILES="$CHECK_FILE1 $CHECK_FILE2 $CHECK_FILE3"
+
+	echo $CHECKMYTAR_OUT
+	echo $CHECKFILES
+
+	if [[("$CHECKMYTAR_OUT" == "$CHECKFILES")]] ; then
+		echo "CheckSum correct"
+		exit 0
+	else
+      		echo "ERROR:  Test incorrect: checksum doesn't match"
+		exit 1
+	fi
+	
+		
+else
+      echo "El archivo $ARCTAR no existe."
+fi
