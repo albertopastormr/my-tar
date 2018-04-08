@@ -1,2 +1,8 @@
-# mytar
-A simple copy of .tar made for Operating Systems subject of Software Engineer degree of Universidad Complutense Madrid
+# myTar
+Simple C unix .tar.
+## About
+myTar has been developed by CS students of Universidad Complutense Madrid as an assignment for Operating Systems subject.
+## Authors
+- [Alberto Pastor Moreno](https://github.com/albertopastormr)
+- [Iván Fernández Mena](https://github.com/ivanfermena)
+
